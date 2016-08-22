@@ -130,55 +130,34 @@ public class Event {
 //		height(N) -> N.
 	}
 
-	public boolean leq(Event e2) {
-		if (this.isLeaf == false && e2.isLeaf == false) {
-//			leq_ev({N1, L1, R1}, {N2, L2, R2}) ->
-//			N1 =< N2 andalso
-//			leq_ev(lift(N1, L1), lift(N2, L2)) andalso
-//			leq_ev(lift(N1, R1), lift(N2, R2));
-			if (this.value > e2.getValue()) return false;
-
-			Event xl1 = Event.lift(this.value, this.left);
-			Event xl2 = Event.lift(e2.getValue(), e2.getLeft());
-			if(xl1.leq(xl2) == false) return false;
-
-			Event xr1 = Event.lift(this.value, this.right);
-			Event xr2 = Event.lift(e2.getValue(), e2.getRight());
-			if(xr1.leq(xr2) == false) return false;
-
-			return true;
-		} else if (this.isLeaf == false && e2.isLeaf) {
-//			leq_ev({N1, L1, R1}, N2) ->
-//			N1 =< N2 andalso
-//			leq_ev(lift(N1, L1), N2) andalso
-//			leq_ev(lift(N1, R1), N2);
-			if (this.value > e2.getValue()) return false;
-
-			Event xl1 = Event.lift(this.value, this.left);
-			if(xl1.leq(e2) == false) return false;
-
-			Event xr1 = Event.lift(this.value, this.right);
-			if(xr1.leq(e2) == false) return false;
-
-			return true;
-		} else if (this.isLeaf && e2.isLeaf) {
-//			leq_ev(N1, N2) -> N1 =< N2.
-			return this.value <= e2.getValue();
-		} else if (this.isLeaf && e2.isLeaf == false) {
-//			leq_ev(N1, {N2, _, _}) -> N1 =< N2;
-			if(this.value < e2.getValue()) {
-				return true;
-			}
-			Event ev = this.clone();
-			ev.setAsNode();
-			return ev.leq(e2);
-		} else {
-			System.out.println("Something is wrong.");
+	private static final int lift (Event e) {
+		return e.isLeaf ? 0 : e.value;
+	}
+	
+	private final Event tryLeft() {
+		return isLeaf ? this : left;
+	}
+	
+	private final Event tryRight() {
+		return isLeaf ? this : right;
+	}
+	
+	private static final boolean leq2(final int a, final Event e1, final int b, Event e2) {
+		final int new_a = a + e1.value;
+		if (e1.isLeaf) {
+			return new_a <= b + e2.value;
 		}
-
-		return false;
+		final int new_b = lift(e2) + b;
+		if (!leq2(new_a, e1.left, new_b, e2.tryLeft())) {
+			return false;
+		}
+		return leq2(new_a, e1.right, new_b, e2.tryRight());
 	}
 
+	public boolean leq(Event e2) {
+		return leq2(0, this, 0, e2);
+	}
+	
 	public BitArray encode(BitArray bt) {
 		if (bt == null) {
 			bt = new BitArray();
