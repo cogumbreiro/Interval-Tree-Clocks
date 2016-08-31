@@ -141,111 +141,149 @@ public class Event {
 	private final Event tryRight() {
 		return isLeaf ? this : right;
 	}
-	
-	private static final boolean leq2(final int a, final Event e1, final int b, Event e2) {
-		final int new_a = a + e1.value;
+
+	/**
+	 * Less than-equal operator for causality: either e1 happens before e2 or e1
+	 * equals e2.
+	 * 
+	 * @param offset1 The accumulated lifted value for event e1.
+	 * @param e1 The first event being compared.
+	 * @param offset2 The accumulated lifted value for event e2
+	 * @param e2 The second event being compared.
+	 * @return Returns if e1 is precedes or equals e2.
+	 */
+	private static final boolean lessThanEquals(final int offset1,
+			final Event e1, final int offset2, Event e2) {
+		final int new_a = offset1 + e1.value;
 		if (e1.isLeaf) {
-			return new_a <= b + e2.value;
+			return new_a <= offset2 + e2.value;
 		}
-		final int new_b = lift(e2) + b;
-		if (!leq2(new_a, e1.left, new_b, e2.tryLeft())) {
+		final int new_b = lift(e2) + offset2;
+		if (!lessThanEquals(new_a, e1.left, new_b, e2.tryLeft())) {
 			return false;
 		}
-		return leq2(new_a, e1.right, new_b, e2.tryRight());
+		return lessThanEquals(new_a, e1.right, new_b, e2.tryRight());
 	}
 
-	private static final boolean eq(final int accum, final Event e1,
-			final Event e2) {
-		if (e1.value != e2.value) {
-			return false;
+	/**
+	 * The causality between two events.
+	 *
+	 */
+	private static enum Causality {
+		HAPPENS_BEFORE, HAPPENS_AFTER, EQUALS, UNCOMPARABLE;
+		public boolean isUnordered() {
+			return this == EQUALS || this == UNCOMPARABLE;
 		}
-		if (e1.isLeaf) {
-			return e2.isLeaf ? true : leq2(accum, e2, accum, e1);
-		}
-		if (e2.isLeaf) {
-			return leq2(accum, e1, accum, e2);
-		}
-		final int newAccum = accum + e1.value;
-		return eq(newAccum, e1.left, e2.left)
-				&& eq(newAccum, e1.right, e2.right);
-	}
-
-	private static enum Comparator {
-		LT, GT, EQ, UNDEF
-	}
-
-	private static Comparator merge(Comparator c1, Comparator c2) {
-		switch (c1) {
-		case EQ:
-			return c2;
-		case UNDEF:
-			return Comparator.UNDEF;
-		case LT: {
-			switch (c2) {
-			case LT:
-			case EQ:
-				return Comparator.LT;
-			default:
-				return Comparator.UNDEF;
+		/**
+		 * Compose two causality events.
+		 * @param c1
+		 * @param c2
+		 * @return
+		 */
+		public static Causality compose(Causality c1, Causality c2) {
+			switch (c1) {
+			case EQUALS:
+				return c2;
+			case UNCOMPARABLE:
+				return Causality.UNCOMPARABLE;
+			case HAPPENS_BEFORE: {
+				switch (c2) {
+				case HAPPENS_BEFORE:
+				case EQUALS:
+					return Causality.HAPPENS_BEFORE;
+				default:
+					return Causality.UNCOMPARABLE;
+				}
 			}
-		}
-		case GT: {
-			switch (c2) {
-			case GT:
-			case EQ:
-				return Comparator.GT;
-			default:
-				return Comparator.UNDEF;
+			case HAPPENS_AFTER: {
+				switch (c2) {
+				case HAPPENS_AFTER:
+				case EQUALS:
+					return Causality.HAPPENS_AFTER;
+				default:
+					return Causality.UNCOMPARABLE;
+				}
 			}
+			}
+			throw new IllegalStateException();
 		}
-		}
-		throw new IllegalStateException();
 	}
-	
+
+
 	/**
 	 * Base case of comparison.
+	 * 
 	 * @param offset
 	 * @param e1
 	 * @param e2
 	 * @return
 	 */
-	private static Comparator cmp0(int offset, Event e1, Event e2) {
+	private static Causality compare0(int offset, Event e1, Event e2) {
 		if (e1.value < e2.value) {
-			return leq2(offset, e1, offset, e2) ? Comparator.LT : Comparator.UNDEF;
+			return lessThanEquals(offset, e1, offset, e2) ? Causality.HAPPENS_BEFORE
+					: Causality.UNCOMPARABLE;
 		} else if (e1.value > e2.value) {
-			return leq2(offset, e2, offset, e1) ? Comparator.GT : Comparator.UNDEF;
+			return lessThanEquals(offset, e2, offset, e1) ? Causality.HAPPENS_AFTER
+					: Causality.UNCOMPARABLE;
 		}
-		if (leq2(offset, e1, offset, e2)) {
-			if (leq2(offset, e2, offset, e1)) {
-				return Comparator.EQ;
+		// Since one of the events is a leaf event, then only one leq is called.
+		if (lessThanEquals(offset, e1, offset, e2)) {
+			if (lessThanEquals(offset, e2, offset, e1)) {
+				return Causality.EQUALS;
 			}
-			return Comparator.LT;
+			return Causality.HAPPENS_BEFORE;
 		}
-		if (leq2(offset, e2, offset, e1)) {
-			return Comparator.GT;
+		if (lessThanEquals(offset, e2, offset, e1)) {
+			return Causality.HAPPENS_AFTER;
 		}
-		return Comparator.UNDEF;
+		return Causality.UNCOMPARABLE;
 	}
 
-	private static Comparator cmp(int offset, Event e1, Event e2) {
+	/**
+	 * Checks if a given event happens-before (LT), happens-after (GT), equals,
+	 * or is undefined
+	 * 
+	 * @param offset
+	 * @param e1
+	 * @param e2
+	 * @return
+	 */
+	private static Causality compare(int offset, Event e1, Event e2) {
 		if (e1.value != e2.value || e1.isLeaf || e2.isLeaf) {
-			return cmp0(offset, e1, e2);
+			return compare0(offset, e1, e2);
 		}
 		int newOffset = offset + e1.value;
-		return merge(cmp(newOffset, e1.left, e2.left), cmp(newOffset, e1.right, e2.right));
+		return Causality.compose(compare(newOffset, e1.left, e2.left),
+				compare(newOffset, e1.right, e2.right));
 	}
 
-	public boolean leq(Event e2) {
-		return leq2(0, this, 0, e2);
+	/**
+	 * Check if this event precedes or equals event <code>e</code> 
+	 * @param e2
+	 * @return
+	 */
+	public boolean lessThanEquals(Event other) {
+		return lessThanEquals(0, this, 0, other);
 	}
 
-	public boolean isConcurrent(Event e2) {
-		Comparator c = cmp(0, this, e2);
-		return c == Comparator.EQ || c == Comparator.UNDEF;
+	/**
+	 * Checks if this event is concurrent with <code>e</code>.
+	 * If <code>e1.isConcurrent(e2)</code>, then <code>e2.isConcurrent(e1)</code>.
+	 * @param other The event this object is being compared against.
+	 * @return
+	 */
+	public boolean isConcurrent(Event other) {
+		return compare(0, this, other).isUnordered();
 	}
-	
-	public boolean happensBefore(Event e2) {
-		return cmp(0, this, e2) == Comparator.LT;
+
+	/**
+	 * Checks if this event happened before the other.
+	 * If neither event happened before the other, we say that they are concurrent.
+	 * @param e
+	 * @return
+	 */
+	public boolean happensBefore(Event other) {
+		return compare(0, this, other) == Causality.HAPPENS_BEFORE;
 	}
 	
 	public BitArray encode(BitArray bt) {

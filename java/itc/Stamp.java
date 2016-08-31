@@ -103,7 +103,7 @@ public class Stamp {
 	}
 
 	public boolean leq(Stamp s2) {
-		return this.event.leq(s2.getEvent());
+		return this.event.lessThanEquals(s2.getEvent());
 	}
 
 	protected static void fill(Id i, Event e) {
