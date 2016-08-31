@@ -29,7 +29,6 @@ public class Stamp {
 
 		Stamp st = new Stamp();
 		st.setEvent(this.event.clone());
-//		st.setId(this.id.split());
 
 		Id[] par = this.id.split();
 		this.id = par[0];
@@ -41,10 +40,6 @@ public class Stamp {
 	public static Stamp[] fork(Stamp st) {
 		Stamp b = new Stamp();
 		b.setEvent(st.getEvent().clone());
-//
-//		if(b.getEvent().equals(st.getEvent()) == false) {
-//			System.out.println("Fail @ Fork: events not equal -> EV1:"+b.getEvent().toString()+"\nEV2:"+st.getEvent().toString());
-//		}
 
 		Id[] par = st.getId().split();
 		st.setId(par[0]);
@@ -107,7 +102,6 @@ public class Stamp {
 	}
 
 	protected static void fill(Id i, Event e) {
-
 		if (i.isLeaf && i.getValue() == 0) {
 		} else if (i.isLeaf && i.getValue() == 1) {
 			e.height();
@@ -127,7 +121,7 @@ public class Stamp {
 			Stamp.fill(i.getRight(), e.getRight());
 			e.normalize();
 		} else {
-			System.out.println("ERROR Fill\n ID:"+ i.toString()+"\n Ev:"+e.toString());
+			throw new IllegalStateException("ERROR Fill\n ID:"+ i.toString()+"\n Ev:"+e.toString());
 		}
 	}
 
@@ -160,11 +154,8 @@ public class Stamp {
 				return costr + 1;
 			}
 		} else {
-			System.out.println("ERROR GROW\n ID:"+ i.toString()+"\n Ev:"+e.toString());
-
+			throw new IllegalArgumentException("ERROR GROW\n ID:"+ i.toString()+"\n Ev:"+e.toString());
 		}
-
-		return -1;
 	}
 
 	public char[] Encode() {
@@ -218,14 +209,6 @@ public class Stamp {
 		int Ebits = this.event.encode(null).getSizeBits();
 		return (int) ((Ibits + Ebits + 4) / 8);
 	}
-//
-//	//size of stamp in bits
-//	public int sizeInBits(char[] array){
-//		int ilen = (array[0])/8;
-//		int ilen2 = 3 + ((array[0] + array[1])/16);
-//		int elen = (array[ilen2])/8;
-//		return ilen+elen;
-//	}
 
 	public void decode(BitArray bt) {
 		this.event.decode(bt);
@@ -307,7 +290,6 @@ public class Stamp {
 			long n = ByteInt.byteArrayToInt(ene);
 
 			n /= 2;
-//			System.out.println(" coiso " + n);
 			char[] array = new char[(int) n];
 			for (int j = (int) n - 1; j >= 0; j--) {
 				array[j] = in.readChar();

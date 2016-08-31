@@ -54,23 +54,9 @@ public class Event {
 		} else if (e1.isLeaf && e2.isLeaf) {
 			e1.setValue(Math.max(e1.getValue(), e2.getValue()));
 		} else {
-			System.out.println("fail Event fork e1:" + e1.toString() + " e2:" + e2.toString());
+			throw new IllegalStateException("fail Event fork e1:" + e1.toString() + " e2:" + e2.toString());
 		}
 		e1.normalize();
-
-		/*
-		join_ev(E1={N1, _, _}, E2={N2, _, _}) when N1 > N2 -> join_ev(E2, E1);
-		 *
-		join_ev({N1, L1, R1}, {N2, L2, R2}) when N1 =< N2 ->
-		D = N2 - N1,
-		norm_ev({N1, join_ev(L1, lift(D, L2)), join_ev(R1, lift(D, R2))});
-		 *
-		join_ev(N1, {N2, L2, R2}) -> join_ev({N1, 0, 0}, {N2, L2, R2});
-		 *
-		join_ev({N1, L1, R1}, N2) -> join_ev({N1, L1, R1}, {N2, 0, 0});
-		 *
-		join_ev(N1, N2) -> max(N1, N2).
-		 */
 	}
 
 	public void normalize() { // transform itself in the normal form
@@ -83,12 +69,6 @@ public class Event {
 			this.left.drop(mm);
 			this.right.drop(mm);
 		}
-		/*
-		norm_ev({N, M, M}) when is_integer(M) -> N + M;
-		 *
-		norm_ev({N, L, R}) ->
-		M = min(base(L), base(R)),
-		{N + M, drop(M, L), drop(M, R)}.*/
 	}
 
 	public void copy(Event e) {
@@ -114,8 +94,6 @@ public class Event {
 		if (val <= this.value) {
 			this.value = this.value - val;
 		}
-		/*drop(M, {N, L, R}) when M =< N -> {N - M, L ,R};
-		drop(M, N) when M =< N -> N - M.*/
 	}
 
 
@@ -126,8 +104,6 @@ public class Event {
 			value += Math.max(left.getValue(), right.getValue());
 			this.setAsLeaf();
 		}
-//		height({N, L, R}) -> N + max(height(L), height(R));
-//		height(N) -> N.
 	}
 
 	private static final int lift (Event e) {
@@ -329,21 +305,15 @@ public class Event {
 			this.left.encode(bt);
 			this.right.encode(bt);
 		} else {
-			System.out.println("Something is wrong (XIT) : encode " + this.isLeaf + " " + this.value);
-			if (this.isLeaf == false) {
-				System.out.println("                   : encode is leaf?" + left.isLeaf + " " + left.getValue());
-				System.out.println("                   : encode is leaf?" + right.isLeaf + " " + right.getValue());
-			}
+			throw new IllegalStateException("Something is wrong (XIT) : encode " + this.isLeaf + " " + this.value);
 		}
 
 		return bt;
 	}
 
 	public void enc_n(BitArray bt, int val, int nb) {
-		//printf("enc %d %d\n", val, nb);
 		if (val < (1 << nb)) {
 			bt.addbits(0, 1);
-			//printf("%d\t enc %d %d\n", be->ub, val, nb);
 			bt.addbits(val, nb);
 		} else {
 			bt.addbits(1, 1);
@@ -353,24 +323,24 @@ public class Event {
 
 	public void decode(BitArray bt) {
 		int val = bt.readbits(1);
-		if (val == 1) {//printf("g\n");
+		if (val == 1) {
 			this.setAsLeaf();
 			this.value = dec_n(bt);
 		} else if (val == 0) {
 			val = bt.readbits(2);
-			if (val == 0) {//printf("a\n");
+			if (val == 0) {
 				this.setAsNode();
 				this.value = 0;
 				this.left = new Event(0);
 				this.right = new Event();
 				this.right.decode(bt);
-			} else if (val == 1) {//printf("b\n");
+			} else if (val == 1) {
 				this.setAsNode();
 				this.value = 0;
 				this.left = new Event();
 				this.left.decode(bt);
 				this.right = new Event(0);
-			} else if (val == 2) {//printf("c\n");
+			} else if (val == 2) {
 				this.setAsNode();
 				this.value = 0;
 				this.left = new Event();
@@ -381,22 +351,22 @@ public class Event {
 				val = bt.readbits(1);
 				if (val == 0) { // 0
 					val = bt.readbits(1);
-					if (val == 0) { //printf("d\n");// 0
+					if (val == 0) {
 						this.setAsNode();
 						this.value = dec_n(bt);
 						this.left = new Event(0);
 						this.right = new Event();
 						this.right.decode(bt);
-					} else if (val == 1) {//printf("e\n");
+					} else if (val == 1) {
 						this.setAsNode();
 						this.value = dec_n(bt);
 						this.left = new Event();
 						this.left.decode(bt);
 						this.right = new Event(0);
 					} else {
-						System.out.println("Something is wrong : decode a");
+						throw new IllegalStateException("Something is wrong : decode a");
 					}
-				} else if (val == 1) {//printf("f\n");
+				} else if (val == 1) {
 					this.setAsNode();
 					this.value = dec_n(bt);
 					this.left = new Event();
@@ -404,13 +374,13 @@ public class Event {
 					this.right = new Event();
 					this.right.decode(bt);
 				} else {
-					System.out.println("Something is wrong : decode b");
+					throw new IllegalStateException("Something is wrong : decode b");
 				}
 			} else {
-				System.out.println("Something is wrong : decode c");
+				throw new IllegalStateException("Something is wrong : decode c");
 			}
 		} else {
-			System.out.println("Something is wrong : decode d");
+			throw new IllegalStateException("Something is wrong : decode d");
 		}
 	}
 
@@ -420,12 +390,10 @@ public class Event {
 		int b = 2;
 		while (bt.readbits(1) == 1) {
 			n += (1 << b);
-			//printf("%d\tdec %d %d\n",be->sb, n, b);
 			b++;
 		}
 		int n2 = bt.readbits(b);
 		n += n2;
-		//printf("val %d %d -- %d\n", n2, b, be->sb);
 		return (char) n;
 	}
 
@@ -465,12 +433,10 @@ public class Event {
 	}
 
 	public Event getLeft() {
-//		if(this.isLeaf) return null;
 		return this.left;
 	}
 
 	public Event getRight() {
-//		if(this.isLeaf) return null;
 		return this.right;
 	}
 
@@ -483,7 +449,7 @@ public class Event {
 		} else if (this.isLeaf == false) {
 			res = "(" + this.value + ", " + left.toString() + ", " + right.toString() + ")";
 		} else {
-			System.out.println("ERROR tostring unknown type ");
+			throw new IllegalStateException("ERROR tostring unknown type ");
 		}
 
 		return res;
