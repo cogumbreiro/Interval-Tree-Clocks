@@ -28,8 +28,8 @@ public class Event {
 		this.value = e.getValue();
 		Event el = e.getLeft();
 		Event er = e.getRight();
-		this.left = (el==null) ? null : el.clone();
-		this.right = (er==null) ? null : er.clone();
+		this.left = (el == null) ? null : el.clone();
+		this.right = (er == null) ? null : er.clone();
 	}
 
 	public static void join(Event e1, Event e2) {
@@ -54,13 +54,15 @@ public class Event {
 		} else if (e1.isLeaf && e2.isLeaf) {
 			e1.setValue(Math.max(e1.getValue(), e2.getValue()));
 		} else {
-			throw new IllegalStateException("fail Event fork e1:" + e1.toString() + " e2:" + e2.toString());
+			throw new IllegalStateException("fail Event fork e1:"
+					+ e1.toString() + " e2:" + e2.toString());
 		}
 		e1.normalize();
 	}
 
 	public void normalize() { // transform itself in the normal form
-		if (this.isLeaf == false && this.left.isLeaf && this.right.isLeaf && this.left.getValue() == this.right.getValue()) { 
+		if (this.isLeaf == false && this.left.isLeaf && this.right.isLeaf
+				&& this.left.getValue() == this.right.getValue()) {
 			this.value += this.left.getValue();
 			this.setAsLeaf();
 		} else if (this.isLeaf == false) {
@@ -76,8 +78,8 @@ public class Event {
 		this.value = e.getValue();
 		Event el = e.getLeft();
 		Event er = e.getRight();
-		this.left = (el==null) ? null : el;
-		this.right = (er==null) ? null : er;
+		this.left = (el == null) ? null : el;
+		this.right = (er == null) ? null : er;
 	}
 
 	public void lift(int val) {
@@ -96,7 +98,6 @@ public class Event {
 		}
 	}
 
-
 	public void height() {
 		if (this.isLeaf == false) {
 			left.height();
@@ -106,14 +107,14 @@ public class Event {
 		}
 	}
 
-	private static final int lift (Event e) {
+	private static final int lift(Event e) {
 		return e.isLeaf ? 0 : e.value;
 	}
-	
+
 	private final Event tryLeft() {
 		return isLeaf ? this : left;
 	}
-	
+
 	private final Event tryRight() {
 		return isLeaf ? this : right;
 	}
@@ -122,10 +123,14 @@ public class Event {
 	 * Less than-equal operator for causality: either e1 happens before e2 or e1
 	 * equals e2.
 	 * 
-	 * @param offset1 The accumulated lifted value for event e1.
-	 * @param e1 The first event being compared.
-	 * @param offset2 The accumulated lifted value for event e2
-	 * @param e2 The second event being compared.
+	 * @param offset1
+	 *            The accumulated lifted value for event e1.
+	 * @param e1
+	 *            The first event being compared.
+	 * @param offset2
+	 *            The accumulated lifted value for event e2
+	 * @param e2
+	 *            The second event being compared.
 	 * @return Returns if e1 is precedes or equals e2.
 	 */
 	private static final boolean lessThanEquals(final int offset1,
@@ -150,8 +155,10 @@ public class Event {
 		public boolean isUnordered() {
 			return this == EQUALS || this == UNCOMPARABLE;
 		}
+
 		/**
 		 * Compose two causality events.
+		 * 
 		 * @param c1
 		 * @param c2
 		 * @return
@@ -184,7 +191,6 @@ public class Event {
 			throw new IllegalStateException();
 		}
 	}
-
 
 	/**
 	 * Base case of comparison.
@@ -234,7 +240,8 @@ public class Event {
 	}
 
 	/**
-	 * Check if this event precedes or equals event <code>e</code> 
+	 * Check if this event precedes or equals event <code>e</code>
+	 * 
 	 * @param e2
 	 * @return
 	 */
@@ -243,9 +250,11 @@ public class Event {
 	}
 
 	/**
-	 * Checks if this event is concurrent with <code>e</code>.
-	 * If <code>e1.isConcurrent(e2)</code>, then <code>e2.isConcurrent(e1)</code>.
-	 * @param other The event this object is being compared against.
+	 * Checks if this event is concurrent with <code>e</code>. If
+	 * <code>e1.isConcurrent(e2)</code>, then <code>e2.isConcurrent(e1)</code>.
+	 * 
+	 * @param other
+	 *            The event this object is being compared against.
 	 * @return
 	 */
 	public boolean isConcurrent(Event other) {
@@ -253,51 +262,64 @@ public class Event {
 	}
 
 	/**
-	 * Checks if this event happened before the other.
-	 * If neither event happened before the other, we say that they are concurrent.
+	 * Checks if this event happened before the other. If neither event happened
+	 * before the other, we say that they are concurrent.
+	 * 
 	 * @param e
 	 * @return
 	 */
 	public boolean happensBefore(Event other) {
 		return compare(0, this, other) == Causality.HAPPENS_BEFORE;
 	}
-	
+
 	public BitArray encode(BitArray bt) {
 		if (bt == null) {
 			bt = new BitArray();
 		}
 
 		if (this.isLeaf) {
-			bt.addbits(1, 1);//printf("g\n");
+			bt.addbits(1, 1);// printf("g\n");
 			enc_n(bt, this.value, 2);
-		} else if ((this.isLeaf == false && this.value == 0) && (left.isLeaf && left.getValue() == 0) && (right.isLeaf == false || right.getValue() != 0)) {//printf("a\n");
+		} else if ((this.isLeaf == false && this.value == 0)
+				&& (left.isLeaf && left.getValue() == 0)
+				&& (right.isLeaf == false || right.getValue() != 0)) {// printf("a\n");
 			bt.addbits(0, 1);
 			bt.addbits(0, 2);
 			this.right.encode(bt);
-		} else if ((this.isLeaf == false && this.value == 0) && (left.isLeaf == false || left.getValue() != 0) && (right.isLeaf && right.getValue() == 0)) {//printf("b\n");
+		} else if ((this.isLeaf == false && this.value == 0)
+				&& (left.isLeaf == false || left.getValue() != 0)
+				&& (right.isLeaf && right.getValue() == 0)) {// printf("b\n");
 			bt.addbits(0, 1);
 			bt.addbits(1, 2);
 			this.left.encode(bt);
-		} else if ((this.isLeaf == false && this.value == 0) && (left.isLeaf == false || left.getValue() != 0) && (right.isLeaf == false || right.getValue() != 0)) {//printf("c\n");
+		} else if ((this.isLeaf == false && this.value == 0)
+				&& (left.isLeaf == false || left.getValue() != 0)
+				&& (right.isLeaf == false || right.getValue() != 0)) {// printf("c\n");
 			bt.addbits(0, 1);
 			bt.addbits(2, 2);
 			this.left.encode(bt);
 			this.right.encode(bt);
-		} else if ((this.isLeaf == false && this.value != 0) && (left.isLeaf && left.getValue() == 0) && (right.isLeaf == false || right.getValue() != 0)) {//printf("d\n");
+		} else if ((this.isLeaf == false && this.value != 0)
+				&& (left.isLeaf && left.getValue() == 0)
+				&& (right.isLeaf == false || right.getValue() != 0)) {// printf("d\n");
 			bt.addbits(0, 1);
 			bt.addbits(3, 2);
 			bt.addbits(0, 1);
 			bt.addbits(0, 1);
 			enc_n(bt, this.value, 2);
 			this.right.encode(bt);
-		} else if ((this.isLeaf == false && this.value != 0) && (left.isLeaf == false || left.getValue() != 0) && (right.isLeaf && right.getValue() == 0)) {//printf("e\n");
+		} else if ((this.isLeaf == false && this.value != 0)
+				&& (left.isLeaf == false || left.getValue() != 0)
+				&& (right.isLeaf && right.getValue() == 0)) {// printf("e\n");
 			bt.addbits(0, 1);
 			bt.addbits(3, 2);
 			bt.addbits(0, 1);
 			bt.addbits(1, 1);
 			enc_n(bt, this.value, 2);
 			this.left.encode(bt);
-		} else if ((this.isLeaf == false && this.value != 0) && (left.isLeaf == false || left.getValue() != 0) && (right.isLeaf == false || right.getValue() != 0)) {//printf("f\n");
+		} else if ((this.isLeaf == false && this.value != 0)
+				&& (left.isLeaf == false || left.getValue() != 0)
+				&& (right.isLeaf == false || right.getValue() != 0)) {// printf("f\n");
 			bt.addbits(0, 1);
 			bt.addbits(3, 2);
 			bt.addbits(1, 1);
@@ -305,7 +327,9 @@ public class Event {
 			this.left.encode(bt);
 			this.right.encode(bt);
 		} else {
-			throw new IllegalStateException("Something is wrong (XIT) : encode " + this.isLeaf + " " + this.value);
+			throw new IllegalStateException(
+					"Something is wrong (XIT) : encode " + this.isLeaf + " "
+							+ this.value);
 		}
 
 		return bt;
@@ -364,7 +388,8 @@ public class Event {
 						this.left.decode(bt);
 						this.right = new Event(0);
 					} else {
-						throw new IllegalStateException("Something is wrong : decode a");
+						throw new IllegalStateException(
+								"Something is wrong : decode a");
 					}
 				} else if (val == 1) {
 					this.setAsNode();
@@ -374,7 +399,8 @@ public class Event {
 					this.right = new Event();
 					this.right.decode(bt);
 				} else {
-					throw new IllegalStateException("Something is wrong : decode b");
+					throw new IllegalStateException(
+							"Something is wrong : decode b");
 				}
 			} else {
 				throw new IllegalStateException("Something is wrong : decode c");
@@ -401,9 +427,6 @@ public class Event {
 		return this.encode(null).unify();
 	}
 
-
-
-	
 	public void setAsLeaf() {
 		this.isLeaf = true;
 		this.left = null;
@@ -447,7 +470,8 @@ public class Event {
 		if (this.isLeaf) {
 			res = res + (int) this.value;
 		} else if (this.isLeaf == false) {
-			res = "(" + this.value + ", " + left.toString() + ", " + right.toString() + ")";
+			res = "(" + this.value + ", " + left.toString() + ", "
+					+ right.toString() + ")";
 		} else {
 			throw new IllegalStateException("ERROR tostring unknown type ");
 		}
@@ -462,7 +486,10 @@ public class Event {
 		if (this.isLeaf && e2.isLeaf && this.value == e2.getValue()) {
 			return true;
 		}
-		if (this.isLeaf == false && e2.isLeaf == false && this.value == e2.getValue() && this.left.equals(e2.getLeft()) && this.right.equals(e2.getRight())) {
+		if (this.isLeaf == false && e2.isLeaf == false
+				&& this.value == e2.getValue()
+				&& this.left.equals(e2.getLeft())
+				&& this.right.equals(e2.getRight())) {
 			return true;
 		}
 		return false;
@@ -476,8 +503,8 @@ public class Event {
 		res.setValue(this.value);
 		Event el = this.getLeft();
 		Event er = this.getRight();
-		res.setLeft((el==null) ? null : el.clone());
-		res.setRight((er==null) ? null : er.clone());
+		res.setLeft((el == null) ? null : el.clone());
+		res.setRight((er == null) ? null : er.clone());
 		return res;
 	}
 }

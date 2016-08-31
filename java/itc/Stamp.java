@@ -52,12 +52,15 @@ public class Stamp {
 		return res;
 	}
 
-	public void join(Stamp s2) { // joins two stamps becoming itself the result stamp
+	public void join(Stamp s2) { // joins two stamps becoming itself the result
+									// stamp
 		Id.sum(this.id, s2.getId());
-		Event.join(this.event,s2.getEvent());
+		Event.join(this.event, s2.getEvent());
 	}
 
-	public static Stamp join(Stamp s1, Stamp s2) { // joins two stamps, returning the resulting stamp
+	public static Stamp join(Stamp s1, Stamp s2) { // joins two stamps,
+													// returning the resulting
+													// stamp
 		Id.sum(s1.getId(), s2.getId());
 		Event.join(s1.getEvent(), s2.getEvent());
 		return s1;
@@ -106,22 +109,27 @@ public class Stamp {
 		} else if (i.isLeaf && i.getValue() == 1) {
 			e.height();
 		} else if (e.isLeaf) {
-		} else if (i.isLeaf == false && i.getLeft().isLeaf && i.getLeft().getValue() == 1) {
+		} else if (i.isLeaf == false && i.getLeft().isLeaf
+				&& i.getLeft().getValue() == 1) {
 			Stamp.fill(i.getRight(), e.getRight());
 			e.getLeft().height();
-			e.getLeft().setValue(Math.max(e.getLeft().getValue(), e.getRight().getValue()));
+			e.getLeft().setValue(
+					Math.max(e.getLeft().getValue(), e.getRight().getValue()));
 			e.normalize();
-		} else if (i.isLeaf == false && i.getRight().isLeaf && i.getRight().getValue() == 1) {
+		} else if (i.isLeaf == false && i.getRight().isLeaf
+				&& i.getRight().getValue() == 1) {
 			Stamp.fill(i.getLeft(), e.getLeft());
 			e.getRight().height();
-			e.getRight().setValue(Math.max(e.getRight().getValue(), e.getLeft().getValue()));
+			e.getRight().setValue(
+					Math.max(e.getRight().getValue(), e.getLeft().getValue()));
 			e.normalize();
 		} else if (i.isLeaf == false) {
 			Stamp.fill(i.getLeft(), e.getLeft());
 			Stamp.fill(i.getRight(), e.getRight());
 			e.normalize();
 		} else {
-			throw new IllegalStateException("ERROR Fill\n ID:"+ i.toString()+"\n Ev:"+e.toString());
+			throw new IllegalStateException("ERROR Fill\n ID:" + i.toString()
+					+ "\n Ev:" + e.toString());
 		}
 	}
 
@@ -129,16 +137,18 @@ public class Stamp {
 		int cost;
 
 		if (i.isLeaf && i.getValue() == 1 && e.isLeaf) {
-			e.setValue(e.getValue()+1);
+			e.setValue(e.getValue() + 1);
 			return 0;
 		} else if (e.isLeaf) {
 			e.setAsNode();
 			cost = Stamp.grow(i, e);
 			return cost + 1000;
-		} else if (i.isLeaf == false && i.getLeft().isLeaf && i.getLeft().getValue() == 0) {
+		} else if (i.isLeaf == false && i.getLeft().isLeaf
+				&& i.getLeft().getValue() == 0) {
 			cost = Stamp.grow(i.getRight(), e.getRight());
 			return cost + 1;
-		} else if (i.isLeaf == false && i.getRight().isLeaf && i.getRight().getValue() == 0) {
+		} else if (i.isLeaf == false && i.getRight().isLeaf
+				&& i.getRight().getValue() == 0) {
 			cost = Stamp.grow(i.getLeft(), e.getLeft());
 			return cost + 1;
 		} else if (i.isLeaf == false) {
@@ -154,7 +164,8 @@ public class Stamp {
 				return costr + 1;
 			}
 		} else {
-			throw new IllegalArgumentException("ERROR GROW\n ID:"+ i.toString()+"\n Ev:"+e.toString());
+			throw new IllegalArgumentException("ERROR GROW\n ID:"
+					+ i.toString() + "\n Ev:" + e.toString());
 		}
 	}
 
@@ -196,14 +207,14 @@ public class Stamp {
 		return res;
 	}
 
-	//size of stamp in bits
+	// size of stamp in bits
 	public int sizeInBits() {
 		int Ibits = this.id.encode(null).getSizeBits();
 		int Ebits = this.event.encode(null).getSizeBits();
 		return Ibits + Ebits;
 	}
-	
-	//size of stamp in byts
+
+	// size of stamp in byts
 	public int sizeInBytes() {
 		int Ibits = this.id.encode(null).getSizeBits();
 		int Ebits = this.event.encode(null).getSizeBits();
@@ -214,7 +225,8 @@ public class Stamp {
 		this.event.decode(bt);
 	}
 
-	public void dDecode(char[] array) { // tamanhos completos, incluindo metadados (ub, fb, sb)
+	public void dDecode(char[] array) { // tamanhos completos, incluindo
+										// metadados (ub, fb, sb)
 		int ilen = 3 + ((array[0] + array[1]) / 16);
 		int elen = 3 + ((array[ilen] + array[ilen + 1]) / 16);
 		char[] icode = new char[ilen];
