@@ -154,8 +154,98 @@ public class Event {
 		return leq2(new_a, e1.right, new_b, e2.tryRight());
 	}
 
+	private static final boolean eq(final int accum, final Event e1,
+			final Event e2) {
+		if (e1.value != e2.value) {
+			return false;
+		}
+		if (e1.isLeaf) {
+			return e2.isLeaf ? true : leq2(accum, e2, accum, e1);
+		}
+		if (e2.isLeaf) {
+			return leq2(accum, e1, accum, e2);
+		}
+		final int newAccum = accum + e1.value;
+		return eq(newAccum, e1.left, e2.left)
+				&& eq(newAccum, e1.right, e2.right);
+	}
+
+	private static enum Comparator {
+		LT, GT, EQ, UNDEF
+	}
+
+	private static Comparator merge(Comparator c1, Comparator c2) {
+		switch (c1) {
+		case EQ:
+			return c2;
+		case UNDEF:
+			return Comparator.UNDEF;
+		case LT: {
+			switch (c2) {
+			case LT:
+			case EQ:
+				return Comparator.LT;
+			default:
+				return Comparator.UNDEF;
+			}
+		}
+		case GT: {
+			switch (c2) {
+			case GT:
+			case EQ:
+				return Comparator.GT;
+			default:
+				return Comparator.UNDEF;
+			}
+		}
+		}
+		throw new IllegalStateException();
+	}
+	
+	/**
+	 * Base case of comparison.
+	 * @param offset
+	 * @param e1
+	 * @param e2
+	 * @return
+	 */
+	private static Comparator cmp0(int offset, Event e1, Event e2) {
+		if (e1.value < e2.value) {
+			return leq2(offset, e1, offset, e2) ? Comparator.LT : Comparator.UNDEF;
+		} else if (e1.value > e2.value) {
+			return leq2(offset, e2, offset, e1) ? Comparator.GT : Comparator.UNDEF;
+		}
+		if (leq2(offset, e1, offset, e2)) {
+			if (leq2(offset, e2, offset, e1)) {
+				return Comparator.EQ;
+			}
+			return Comparator.LT;
+		}
+		if (leq2(offset, e2, offset, e1)) {
+			return Comparator.GT;
+		}
+		return Comparator.UNDEF;
+	}
+
+	private static Comparator cmp(int offset, Event e1, Event e2) {
+		if (e1.value != e2.value || e1.isLeaf || e2.isLeaf) {
+			return cmp0(offset, e1, e2);
+		}
+		int newOffset = offset + e1.value;
+		return merge(cmp(newOffset, e1.left, e2.left), cmp(newOffset, e1.right, e2.right));
+	}
+
 	public boolean leq(Event e2) {
 		return leq2(0, this, 0, e2);
+	}
+
+	public boolean isConcurrent(Event e2) {
+		Comparator c = cmp(0, this, e2);
+		return c == Comparator.EQ || c == Comparator.UNDEF;
+	}
+	
+	public boolean happensBefore(Event e2) {
+		return cmp(0, this, e2) == Comparator.LT;
 	}
 	
 	public BitArray encode(BitArray bt) {
